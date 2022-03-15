@@ -1,7 +1,10 @@
 # Performs DFT-based analysis (PSD,TOLf (fast 1/3-octave method),Broadband) for PAMGuide. 
 # Adapted from PG_DFT.m, by Nathan D. Merchant
-# Faro, Qui 04 Fev 2021 21:01:17 WET 
+# Faro, Ter 15 Mar 2022 17:16:25 WET 
 # Written by Orlando Camargo Rodriguez
+# Includes correction C. Malinka to address bug in calculation of one-third
+# octave levels which affected accuracy at low-frequencies (<~200 Hz) when 
+# applying a low-frequency cut-off in the analysis
 #==========================================================================
 # Don't like it? Don't use it...
 #==========================================================================
@@ -110,17 +113,19 @@ def PG_DFT(xbit   =None,
     fhigh = indexes[-1] # high- cut-off
     f = f[flow:fhigh+1] # frequency bins in user-defined range
     nf = f.size         # number of frequency bins
-
+## FIX to ensure Pss covers correct frequency range during TOL analysis
+    Pss = Pss[:,flow:fhigh+1]
 ## Compute noise power bandwidth and delta(f)
     B = sum( w*w )/N # noise power bandwidth (EQUATION 12)
     delf = 1.0*Fs/N  # frequency bin width
+# C. Malinka Debug 13/12/2021 - changing Pss(:,flow:fhigh) to Pss 
 ## Convert to dB
     if atype == 'PSD':         # if PSD selected (EQUATION 11)
-       a = 10*log10( 1.0/(delf*B)*Pss[:,flow:fhigh+1]/pxp ) - S
+       a = 10*log10( 1.0/(delf*B)*Pss/pxp ) - S
     elif atype == 'PowerSpec': # if power spectrum selected
-       a = 10*log10( Pss[:,flow:fhigh+1]/pxp ) - S  # EQUATION 10
+       a = 10*log10( Pss/pxp ) - S  # EQUATION 10
     elif atype == 'Broadband': # if broadband level selected
-       a = 10*log10(sum(Pss[:,flow:fhigh+1],axis=1)/pxp ) - S # EQUATION 17
+       a = 10*log10(sum(Pss,axis=1)/pxp ) - S # EQUATION 17
     elif atype == 'TOL':       # 1/3 octave analysis (if selected)
 # Generate 1/3-octave frequencies
        if ( lcut < 25 ):
