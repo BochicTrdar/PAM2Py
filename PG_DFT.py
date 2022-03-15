@@ -2,7 +2,7 @@
 # Adapted from PG_DFT.m, by Nathan D. Merchant
 # Faro, Ter 15 Mar 2022 17:16:25 WET 
 # Written by Orlando Camargo Rodriguez
-# Includes correction C. Malinka to address bug in calculation of one-third
+# Includes correction by C. Malinka to address bug in calculation of one-third
 # octave levels which affected accuracy at low-frequencies (<~200 Hz) when 
 # applying a low-frequency cut-off in the analysis
 #==========================================================================
