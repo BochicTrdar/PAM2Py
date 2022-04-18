@@ -1,9 +1,9 @@
 # PAM2Py Python ToolBox
-# Version 2.1
+# Version 3.0
 # JONAS Project 
 # Written by Orlando Camargo Rodriguez
 # Based on PAMGuide.m by Nathan D. Merchant
-# Faro, Seg 14 Mar 2022 12:32:25 WET 
+# Faro, Seg 18 Abr 2022 21:45:47 WEST 
 #==========================================================================
 # Don't like it? Don't use it...
 #==========================================================================
@@ -86,8 +86,8 @@ def gui_experimentala():
        ttk.Button(GExperimentalA, text="Select Directory", style='GE.TButton', command=infodir).grid(column=1, row=1, padx=5, pady=5)
        ttk.Button(GExperimentalA, text="Calibration", style='GE.TButton', command=gui_calib).grid(column=1, row=2, padx=5, pady=5)
        ttk.Button(GExperimentalA, text="Analysis", style='GE.TButton', command=gui_analysis).grid(column=1, row=3, padx=5, pady=5)
-       ttk.Button(GExperimentalA, text="RUN", style='RB.TButton', command=run_analysis).grid(column=1, row=4, padx=5,pady=5)
-       ttk.Button(GExperimentalA, text="Write CSV/EDF?", style='CB.TButton', command=gui_writeout).grid(column=1, row=5, padx=5,pady=5)
+       ttk.Button(GExperimentalA, text="RUN", style='RB.TButton', command=run_analysisb).grid(column=1, row=4, padx=5,pady=5)
+       ttk.Button(GExperimentalA, text="Write CSV/EDF?", style='CB.TButton', command=gui_writeoutb).grid(column=1, row=5, padx=5,pady=5)
        ttk.Button(GExperimentalA, text="Close", style='CB.TButton', command=lambda:[jgea.set(0),GExperimentalA.grab_release(),GExperimentalA.destroy()]).grid(column=1, row=6, padx=5, pady=5)
     return
 #======================================================================
@@ -235,6 +235,27 @@ def gui_writeout():
           C1 = ttk.Checkbutton(Gwrite, text = "CSV", style='CB2.TCheckbutton', variable=CSVOUT, onvalue='Yes', offvalue='No').grid(column=1, row=2)
           C2 = ttk.Checkbutton(Gwrite, text = "EDF", style='CB2.TCheckbutton', variable=EDFOUT, onvalue='Yes', offvalue='No').grid(column=1, row=3)
           ttk.Button(Gwrite, text="Write", style ='CB.TButton', command=writeout).grid(column=1, row=4, padx=5, pady=5)
+          ttk.Button(Gwrite, text="Close", style ='CB.TButton', command=lambda:[jwo.set(0),Gwrite.grab_release(),Gwrite.destroy()]).grid(column=1, row=5, padx=5, pady=5)
+       else: 
+          messagebox.showinfo("Oops...", 'Run Analysis first (except Waveform option)')
+    return
+#======================================================================
+# GUI to write CVS/EDF after batch processing:
+def gui_writeoutb():
+    jwo.set( jwo.get() + 1 ) 
+    ngui = jwo.get()
+    if ( ngui > 1 ): 
+       messagebox.showinfo("Oops", 'Window already open.')        
+    else:
+       c = os.path.isfile('Aft1.mat')
+       if ( c == True ):
+          Gwrite = Toplevel(root, borderwidth=10, relief=GROOVE)
+          Gwrite.title("Write CSV/EDF?")
+          Gwrite.grab_set()
+          ttk.Label(Gwrite, text='Select Output Type:', style='TE.TLabel').grid(column=1, row=1)
+          C1 = ttk.Checkbutton(Gwrite, text = "CSV", style='CB2.TCheckbutton', variable=CSVOUT, onvalue='Yes', offvalue='No').grid(column=1, row=2)
+          C2 = ttk.Checkbutton(Gwrite, text = "EDF", style='CB2.TCheckbutton', variable=EDFOUT, onvalue='Yes', offvalue='No').grid(column=1, row=3)
+          ttk.Button(Gwrite, text="Write", style ='CB.TButton', command=writeoutb).grid(column=1, row=4, padx=5, pady=5)
           ttk.Button(Gwrite, text="Close", style ='CB.TButton', command=lambda:[jwo.set(0),Gwrite.grab_release(),Gwrite.destroy()]).grid(column=1, row=5, padx=5, pady=5)
        else: 
           messagebox.showinfo("Oops...", 'Run Analysis first (except Waveform option)')
@@ -529,28 +550,19 @@ def infosnd(*args):
     else:
        thefile = filedialog.askopenfilename(initialdir = "",title = "Select file", filetypes = (("WAV files","*.wav"),("all files","*.*")))
     sndfile.set(thefile)
+    thesignal, Fs = sf.read(thefile,dtype=float64)
+    Hcut.set(Fs//2)
     return
 #======================================================================
 # Function to select the directory:
 def infodir(*args):
     thefile = filedialog.askdirectory(initialdir = "",title = "Select Directory")
     sndfile.set(thefile)
-    mergefiles()
-    return
-#======================================================================
-# Function to select the mat file:
-def infomat(*args):
-    thefile = filedialog.askopenfilename(initialdir = "",title = "Select file",filetypes = (("MAT files","*.mat"),("all files","*.*")))
-    matfile.set(thefile)
-    return
-#======================================================================
-# Function to merge files in the directory:
-def mergefiles(*args):
     thefiles  = ''
     j = 0
     thedir  = sndfile.get()
     thetype = sndtype.get()
-#   YUP, I prefer filextensions this way:
+#   YUP, I prefer file extensions this way:
     if ( thetype == 'FLAC' ):
        thetype = 'flac'
     else:
@@ -567,6 +579,40 @@ def mergefiles(*args):
        messagebox.showinfo("Oops", 'Only one file found...')
     else:
        list_of_files = thefiles.split()
+       thesignal, Fs = sf.read(list_of_files[0],dtype=float64)
+       Hcut.set(Fs//2)       
+    return
+#======================================================================
+# Function to select the mat file:
+def infomat(*args):
+    thefile = filedialog.askopenfilename(initialdir = "",title = "Select file",filetypes = (("MAT files","*.mat"),("all files","*.*")))
+    matfile.set(thefile)
+    return
+#======================================================================
+# Function to run batch analysis in the directory:
+def run_analysisb(*args):
+    thefiles  = ''
+    j = 0
+    thedir  = sndfile.get()
+    thetype = sndtype.get()
+#   YUP, I prefer file extensions this way:
+    if ( thetype == 'FLAC' ):
+       thetype = 'flac'
+    else:
+       thetype = 'wav'
+
+    x = os.listdir(thedir)
+    for i in x:
+        if i.endswith(thetype):
+           j = j + 1
+           thefiles = thefiles + ' ' + i    
+    if ( j == 0 ):
+       messagebox.showinfo("Oops", 'No sound files found...')
+    elif ( j == 1 ):
+       messagebox.showinfo("Oops", 'Only one file found...')
+    else:
+       list_of_files = thefiles.split()
+# CANCEL BATCH IF SAMPLING FREQUENCIES ARE DIFFERENT or IF # OF CHANNELS IS DIFFERENT!     
        sampling_frequency = zeros(j)
        nchannels          = zeros(j)
        for i in range(j):
@@ -581,14 +627,31 @@ def mergefiles(*args):
           messagebox.showinfo("Batch processing cancelled:", 'Number of channels should be the same for all files...')
        else:
           Fs = int( sampling_frequency[0] )
-          thefile = 'all.' + thetype  
-          x = []        
+          atype    =    Atype.get()
+          ctype    =    Ctype.get()
+          plottype = Plottype.get()
+          envi     =     Envi.get()
+          winname  =  Winname.get()
+          Si       = float(      SI.get() )
+          Mh       = float(      MH.get() )
+          G        = float(      GG.get() )
+          vADC     = float(    VADC.get() )
+          r        = float(   Wover.get() )*0.01
+          wlength  = float( Wlength.get() )
+          lcut     = float(    Lcut.get() )
+          hcut     = float(    Hcut.get() )
+          welch    = float(   Welch.get() )
+          S = Linlog.get()
+          if ( S == 'Logarithmic' ):
+             linlog = 0
+          else:
+             linlog = 1
           for i in range(j):
-              thesignal,sampling_frequency[i] = sf.read( thedir + '/' + list_of_files[i] )
-              x = append( x, thesignal )
-              thesignal = []
-          sf.write(thefile,x.astype(float32),Fs)
-          sndfile.set(thefile)
+              ifile = thedir + '/' + list_of_files[i]
+              outi = 'Aft' + str(i) + '.mat'
+              PG_Func(ifile,atype,plottype,envi,ctype,Si,Mh,G,vADC,r,wlength,winname,lcut,hcut,welch,linlog)
+              os.rename('Aft.mat', outi)              
+
     return
 #======================================================================
 # Function to plot the mat file:
@@ -627,6 +690,33 @@ def plotmat(*args):
     else: 
        messagebox.showerror("Error:", "Select a *.mat file first...")
     return
+#======================================================================
+# Function to write the CSV and EDF files after batch processing
+# (the CSV is written only for experimental data):
+def writeoutb(*args):
+    thefiles  = ''
+    j = 0
+    thedir  = sndfile.get()
+    thetype = sndtype.get()
+#   YUP, I prefer file extensions this way:
+    if ( thetype == 'FLAC' ):
+       thetype = 'flac'
+    else:
+       thetype = 'wav'
+
+    x = os.listdir(thedir)
+    for i in x:
+        if i.endswith(thetype):
+           j = j + 1
+           thefiles = thefiles + ' ' + i
+    list_of_files = thefiles.split()
+    j = len( list_of_files )
+    for i in range(j):
+        ifile = thedir + '/' + list_of_files[i]
+        mfile = sndfile.set(ifile)
+        mati = 'Aft' + str(i) + '.mat'
+        os.rename(mati,'Aft.mat')
+        writeout()      
 #======================================================================
 # Function to write the CSV and EDF files
 # (the CSV is written only for experimental data):
@@ -857,7 +947,7 @@ def byebye():
 #======================================================================
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 root = Tk()
-root.title("PAM2Py version 2.1")
+root.title("PAM2Py version 2.5")
 # Styles:
 fc = ttk.Style()
 fc.configure('FC.TFrame', background='darkgreen')
@@ -980,9 +1070,7 @@ root.mainloop()
 # File cleaning:
 if os.path.exists('Aft.mat'):
    os.remove('Aft.mat')
-if os.path.exists('all.wav'):
-   os.remove('all.wav')
-if os.path.exists('all.flac'):
-   os.remove('all.flac')
+if os.path.exists('Aft*.mat'):
+   os.remove('Aft*.mat')
 #======================================================================
 #======================================================================
