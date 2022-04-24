@@ -13,4 +13,6 @@ TOL calculations might differ from PAMGuide below 5% and above 95% due to the di
 
 Min and max values in color figures can be changed interactively using the icons displayed at the top of the figure window. 
 
+Missing package? Use pip or Anaconda-navigator to install it. 
+
 Some matplotlib versions can crash when saving figures to PNG. The solution? Update matplotlib. 
