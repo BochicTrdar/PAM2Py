@@ -1,6 +1,6 @@
 # Computes calibrated acoustic spectra from (lossless) digital audio files.
 # Adapted from PG_Func.m, by Nathan D. Merchant
-# Faro, Qua Out 20 20:30:29 WEST 2021
+# Faro, Qua 04 Mai 2022 19:13:34 WEST 
 # Written by Orlando Camargo Rodriguez
 #==========================================================================
 # Don't like it? Don't use it...
@@ -51,14 +51,19 @@ def PG_Func(ifile    =None,
     thesignal, Fs = sf.read(ifile,dtype=float64) # Let's hope we always get -1 < thedata < 1
 
     samples_channels = squeeze( thesignal.shape )
+
     if samples_channels.size == 1:
        samples  = samples_channels
        channels = 1
        xbit     = thesignal; thesignal = []
     else:
-       samples  = samples_channels[0]
-       channels = samples_channels[1]
-       xbit     = thesignal[0,:]; thesignal = []
+       samples  = max( samples_channels )
+       channels = min( samples_channels )
+       if samples_channels[1] == channels:
+          xbit = thesignal[:,0]
+       else:
+          xbit = thesignal[0,:]
+       thesignal = []
 
     xbit = float32( xbit ) # Single precision
     nyquist = int( Fs/2 )
