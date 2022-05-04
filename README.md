@@ -11,6 +11,8 @@ O.C. RODRIGUEZ, R. DUARTE and S.M. JESUS, "PAM2Py: a Python tool for sharing of 
 
 TOL calculations might differ from PAMGuide below 5% and above 95% due to the difference in the calculation of percentiles between Matlab and Numpy. 
 
+Processes only first channel of multi-channel sound files. 
+
 Min and max values in color figures can be changed interactively using the icons displayed at the top of the figure window. 
 
 Missing package? Use pip or Anaconda-navigator to install it. 
