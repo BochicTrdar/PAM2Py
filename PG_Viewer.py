@@ -1,7 +1,7 @@
 # Plots data analysed in PAMGuide.
 # Written by Orlando Camargo Rodriguez
 # Adapted from PG_Viewer.m, by Nathan D. Merchant
-# Faro, Seg 18 Abr 2022 20:23:04 WEST 
+# Faro, Qua 04 Mai 2022 17:52:47 WEST 
 # To change axes values zoom in the figure.
 #==========================================================================
 # Don't like it? Don't use it...
@@ -14,8 +14,9 @@ from matplotlib.pyplot import *
 from scipy.io import savemat
 from scipy    import stats
 import warnings
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+#warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+#warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+warnings.filterwarnings("ignore")
 
 def PG_Viewer(A       =None,
               f       =None,
@@ -139,8 +140,11 @@ def PG_Viewer(A       =None,
 #           p[:,i] = percentile(A,i,axis=0,interpolation='linear')
 #           p[:,i] = percentile(A,i,axis=0,interpolation='midpoint')
 #       savemat("fp.mat",{"p":p,"f":f})
-       mindB = 10*floor( amin( A/10.0 ) ) # minimum dB level rounded down to nearest 10
-       maxdB = 10* ceil( amax( A/10.0 ) ) # maximum dB level rounded up   to nearest 10
+       Amin = A
+       Amin = where( Amin == -inf, 0.0, Amin )
+       mindB = 10*floor( amin( Amin/10.0 ) ) # minimum dB level rounded down to nearest 10
+       maxdB = 10* ceil( amax( A   /10.0 ) ) # maximum dB level rounded up   to nearest 10
+       Amin = []
 #======================================================================
        if ( ( atype != 'Broadband') and ( M > 1000 ) ):
 
