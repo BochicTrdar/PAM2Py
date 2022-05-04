@@ -954,7 +954,7 @@ def byebye():
 #======================================================================
 #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 root = Tk()
-root.title("PAM2Py version 2.5")
+root.title("PAM2Py version 5.0")
 # Styles:
 fc = ttk.Style()
 fc.configure('FC.TFrame', background='darkgreen')
