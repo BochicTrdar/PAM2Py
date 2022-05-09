@@ -3,7 +3,7 @@
 # JONAS Project 
 # Written by Orlando Camargo Rodriguez
 # Based on PAMGuide.m by Nathan D. Merchant
-# Faro, Dom 24 Abr 2022 16:48:23 WEST 
+# Faro, Dom 08 Mai 2022 18:56:08 WEST 
 #==========================================================================
 # Don't like it? Don't use it...
 #==========================================================================
@@ -174,7 +174,8 @@ def gui_calib():
 # GUI to input analysis options:
 def gui_analysis():
     jan.set( jan.get() + 1 ) 
-    ngui = jan.get()
+    ngui =  jan.get()
+    bao  = jgea.get()
     if ( ngui > 1 ): 
        messagebox.showinfo("Oops", 'Window already open.')        
     else:
@@ -191,6 +192,8 @@ def gui_analysis():
        ttk.Label(Ganalysis,text='Low Freq. limit:' ).grid(column=1,row=7)
        ttk.Label(Ganalysis,text='High Freq. limit:').grid(column=1,row=8)
        ttk.Label(Ganalysis,text='Welch factor:'    ).grid(column=1,row=9)
+       ttk.Label(Ganalysis,text='Channels:'        ).grid(column=1,row=10)
+       ttk.Label(Ganalysis,text='Select channel:'  ).grid(column=1,row=11)
        # Labels, column 3:
        ttk.Label(Ganalysis,text='%' ).grid(column=3,row=5)
        ttk.Label(Ganalysis,text='s' ).grid(column=3,row=6)
@@ -214,9 +217,14 @@ def gui_analysis():
        ttk.Entry(Ganalysis,textvariable=Wlength,width=30).grid(column=2,row=6)
        ttk.Entry(Ganalysis,textvariable=Lcut   ,width=30).grid(column=2,row=7)
        ttk.Entry(Ganalysis,textvariable=Hcut   ,width=30).grid(column=2,row=8)
-       ttk.Entry(Ganalysis,textvariable=Welch  ,width=30).grid(column=2,row=9)  
+       ttk.Entry(Ganalysis,textvariable=Welch  ,width=30).grid(column=2,row=9)
+       ttk.Entry(Ganalysis,textvariable=nchann ,width=30,state='disabled').grid(column=2,row=10)
+       if ( bao == 1 ):
+           ttk.Entry(Ganalysis,textvariable=thechan,width=30,state='disabled').grid(column=2,row=11)
+       else:
+           ttk.Entry(Ganalysis,textvariable=thechan,width=30).grid(column=2,row=11)
        # Button, column 1:
-       ttk.Button(Ganalysis, text="Close", style ='CB.TButton', command=lambda:[jan.set(0),Ganalysis.grab_release(),Ganalysis.destroy()]).grid(column=2, row=10, padx=5, pady=5)
+       ttk.Button(Ganalysis, text="Close", style ='CB.TButton', command=lambda:[jan.set(0),Ganalysis.grab_release(),Ganalysis.destroy()]).grid(column=2, row=12, padx=5, pady=5)
     return
 #======================================================================
 # GUI to write CVS/EDF:
@@ -515,11 +523,15 @@ def whichgui():
 #======================================================================
 # Function to run the analysis:
 def run_analysis():
-    ifile = sndfile.get()
+    ifile       =       sndfile.get()
+    nchannels   = int(   nchann.get() )
+    thechannel  = int(  thechan.get() ) 
     if ( ifile == 'Nothing selected...' ):
        messagebox.showerror("Error:", "Select a sound file first...")
     elif ( Hcut.get() == ' ' ):
        messagebox.showerror("Error:", "Specify a High Frequency...")
+    elif ( thechannel > nchannels ):
+       messagebox.showerror("Error:", "Selected channel does not exist...")
     else:
        atype    =    Atype.get()
        ctype    =    Ctype.get()
@@ -536,11 +548,12 @@ def run_analysis():
        hcut     = float(    Hcut.get() )
        welch    = float(   Welch.get() )
        S = Linlog.get()
+       thechannel = thechannel - 1 # Python starts at 0!!!!!
        if ( S == 'Logarithmic' ):
           linlog = 0
        else:
           linlog = 1
-       PG_Func(ifile,atype,plottype,envi,ctype,Si,Mh,G,vADC,r,wlength,winname,lcut,hcut,welch,linlog)
+       PG_Func(ifile,atype,plottype,envi,ctype,Si,Mh,G,vADC,r,wlength,winname,lcut,hcut,welch,linlog,thechannel)
     return
 #======================================================================
 # Function to select the sound file:
@@ -557,6 +570,17 @@ def infosnd(*args):
          sndfile.set(thefile)
          thesignal, Fs = sf.read(thefile,dtype=float64)
          Hcut.set(Fs//2)
+         iaux = len(thesignal.shape)
+         if iaux == 1:
+            nchann.set(1)
+         else:
+            nchann.set(min(thesignal.shape))
+         samples = max( thesignal.shape )
+         if ( samples < Fs ):
+              sofs = samples/Fs
+              Wlength.set( sofs )
+              themessage = 'Window length should be smaller than ' + str(sofs) + ' s!!!!'
+              messagebox.showinfo("Warning:", themessage)
     else:
        messagebox.showinfo("Oops...", 'Select a file type first...')
     return
@@ -618,46 +642,54 @@ def run_analysisb(*args):
     elif ( j == 1 ):
        messagebox.showinfo("Oops", 'Only one file found...')
     else:
+# CANCEL BATCH IF: 
+# THERE ARE SPACES IN THE FILENAMES    
+# SAMPLING FREQUENCIES ARE DIFFERENT
        list_of_files = thefiles.split()
-# CANCEL BATCH IF SAMPLING FREQUENCIES ARE DIFFERENT or IF # OF CHANNELS IS DIFFERENT!     
-       sampling_frequency = zeros(j)
-       nchannels          = zeros(j)
+       acheck = 0
        for i in range(j):
-           thesignal,sampling_frequency[i] = sf.read( thedir + '/' + list_of_files[i] )
-           nchannels[i] = len( thesignal.shape )
-           thesignal = []
-       cfreq = max( abs( diff( sampling_frequency ) ) )
-       cchan = max( abs( diff( nchannels          ) ) )
-       if ( cfreq != 0 ):
-          messagebox.showinfo("Batch processing cancelled:", 'Sampling rate should be the same for all files...')
-       elif ( cchan != 0 ):
-          messagebox.showinfo("Batch processing cancelled:", 'Number of channels should be the same for all files...')
-       else:
-          Fs = int( sampling_frequency[0] )
-          atype    =    Atype.get()
-          ctype    =    Ctype.get()
-          plottype = Plottype.get()
-          envi     =     Envi.get()
-          winname  =  Winname.get()
-          Si       = float(      SI.get() )
-          Mh       = float(      MH.get() )
-          G        = float(      GG.get() )
-          vADC     = float(    VADC.get() )
-          r        = float(   Wover.get() )*0.01
-          wlength  = float( Wlength.get() )
-          lcut     = float(    Lcut.get() )
-          hcut     = float(    Hcut.get() )
-          welch    = float(   Welch.get() )
-          S = Linlog.get()
-          if ( S == 'Logarithmic' ):
-             linlog = 0
-          else:
-             linlog = 1
-          for i in range(j):
-              ifile = thedir + '/' + list_of_files[i]
-              outi = 'Aft' + str(i) + '.mat'
-              PG_Func(ifile,atype,plottype,envi,ctype,Si,Mh,G,vADC,r,wlength,winname,lcut,hcut,welch,linlog)
-              os.rename('Aft.mat', outi)              
+           thefile = list_of_files[i]
+           acheck = min( [acheck,str.find(thefile,thetype)] )
+       if ( acheck < 0 ): 
+            messagebox.showinfo("Batch processing cancelled:", 'Filenames should not contain spaces...')       
+       else: 
+            sampling_frequency = zeros(j)
+            nchannels          = zeros(j)
+            for i in range(j):
+                thesignal,sampling_frequency[i] = sf.read( thedir + '/' + list_of_files[i] )
+                nchannels[i] = len( thesignal.shape )
+                thesignal = []
+                cfreq = max( abs( diff( sampling_frequency ) ) )
+                cchan = max( abs( diff( nchannels          ) ) ) # Not used, but let's keep it...
+            if ( cfreq != 0 ):
+                messagebox.showinfo("Batch processing cancelled:", 'Sampling rate should be the same for all files...')
+            else:
+                Fs = int( sampling_frequency[0] )
+                atype    =    Atype.get()
+                ctype    =    Ctype.get()
+                plottype = Plottype.get()
+                envi     =     Envi.get()
+                winname  =  Winname.get()
+                Si       = float(      SI.get() )
+                Mh       = float(      MH.get() )
+                G        = float(      GG.get() )
+                vADC     = float(    VADC.get() )
+                r        = float(   Wover.get() )*0.01
+                wlength  = float( Wlength.get() )
+                lcut     = float(    Lcut.get() )
+                hcut     = float(    Hcut.get() )
+                welch    = float(   Welch.get() )
+                S = Linlog.get()
+                if ( S == 'Logarithmic' ):
+                   linlog = 0
+                else:
+                   linlog = 1
+                for i in range(j):
+                    ifile = thedir + '/' + list_of_files[i]
+                    outi = 'Aft' + str(i) + '.mat'
+                    thechannel = 0 # Process only first channel in batch processing...
+                    PG_Func(ifile,atype,plottype,envi,ctype,Si,Mh,G,vADC,r,wlength,winname,lcut,hcut,welch,linlog,thechannel)
+                    os.rename('Aft.mat', outi)              
 
     return
 #======================================================================
@@ -956,6 +988,8 @@ def byebye():
 root = Tk()
 root.title("PAM2Py version 5.0")
 # Styles:
+style=ttk.Style()
+style.map("TEntry",foreground=[("disabled", "black")])
 fc = ttk.Style()
 fc.configure('FC.TFrame', background='darkgreen')
 bd = ttk.Style()
@@ -1041,6 +1075,7 @@ Lcut           = StringVar(); Lcut.set('1')
 Linlog         = StringVar(); Linlog.set('Logarithmic')
 Longitude      = StringVar(); Longitude.set('0.0')
 MH             = StringVar(); MH.set('-36')
+nchann         = StringVar(); nchann.set(' ')
 PercCount      = StringVar(); PercCount.set('0')
 PercList       = StringVar(); PercList.set('0.0')
 Plottype       = StringVar(); Plottype.set('Both')
@@ -1056,6 +1091,7 @@ Source_Levels  = StringVar(); Source_Levels.set('0.0')
 SSP_Model      = StringVar(); SSP_Model.set('MacKenzie, Medwin, ...')
 Start_Date     = StringVar(); Start_Date.set('20210000')
 Temperature_DB = StringVar(); Temperature_DB.set('COPERNICUS')
+thechan        = StringVar(); thechan.set('1')
 TimeDO         = StringVar(); TimeDO.set('Unknown')
 TimeDF         = StringVar(); TimeDF.set('Unknown')
 VADC           = StringVar(); VADC.set('1.4142')
