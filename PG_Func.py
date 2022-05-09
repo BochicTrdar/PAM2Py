@@ -1,6 +1,6 @@
 # Computes calibrated acoustic spectra from (lossless) digital audio files.
 # Adapted from PG_Func.m, by Nathan D. Merchant
-# Faro, Qua 04 Mai 2022 19:13:34 WEST 
+# Faro, Dom 08 Mai 2022 21:33:51 WEST 
 # Written by Orlando Camargo Rodriguez
 #==========================================================================
 # Don't like it? Don't use it...
@@ -40,7 +40,8 @@ def PG_Func(ifile    =None,
             lcut     =None,
             hcut     =None,
             welch    =None,
-            linlog   =None):
+            linlog   =None,
+            thechannel = None):
 #======================================================================
     A = []
     f = []
@@ -60,15 +61,15 @@ def PG_Func(ifile    =None,
        samples  = max( samples_channels )
        channels = min( samples_channels )
        if samples_channels[1] == channels:
-          xbit = thesignal[:,0]
+          xbit = thesignal[:,thechannel]
        else:
-          xbit = thesignal[0,:]
+          xbit = thesignal[thechannel,:]
        thesignal = []
 
     xbit = float32( xbit ) # Single precision
     nyquist = int( Fs/2 )
     N = int( Fs*wlength )
-
+    
     print( 'Analysis type: ' + str(atype))
     print( 'Plot type: '  + str(plottype))
     if ( envi == 'Air' ): 
